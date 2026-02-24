@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMR Sheet SS</title>
+
+<style>
+
+/* =========================
+   GLOBAL STYLES
+========================= */
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f0f2f5;
+}
+
+header{
+    background:#1565c0;
+    color:white;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+h1{
+    margin:0;
+    font-size:20px;
+}
+
+.menu-btn{
+    font-size:22px;
+    cursor:pointer;
+}
+
+.container{
+    padding:15px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+input,select{
+    width:100%;
+    padding:8px;
+    margin:6px 0;
+}
+
+button{
+    padding:10px;
+    width:100%;
+    margin-top:5px;
+    border:none;
+    border-radius:6px;
+    background:#1565c0;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0d47a1;
+}
+
+.hidden{
+    display:none;
+}
+
+.rank-badge{
+    background:#ff9800;
+    padding:5px 10px;
+    border-radius:5px;
+    color:white;
+    font-size:12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>OMR Sheet SS</h1>
+<div class="menu-btn" onclick="toggleMenu()">⋮</div>
+</header>
+
+<div id="menuPanel" class="hidden card">
+<button onclick="showHome()">Home</button>
+<button onclick="showHistory()">History</button>
+<button onclick="showRanking()">Ranking</button>
+<button onclick="showSettings()">Settings</button>
+<button onclick="exportData()">Export Data</button>
+<button onclick="clearAll()">Clear All Data</button>
+</div>
+
+<div class="container" id="mainContainer">
+
+<div class="card">
+<h3>Create New Test</h3>
+
+<label>Teacher Name</label>
+<input type="text" id="teacher">
+
+<label>Student Name</label>
+<input type="text" id="student">
+
+<label>Total Questions</label>
+<input type="number" id="totalQ">
+
+<label>Correct Answers</label>
+<input type="number" id="correct">
+
+<label>Wrong Answers</label>
+<input type="number" id="wrong">
+
+<button onclick="calculateScore()">Calculate & Save</button>
+
+<div id="resultBox"></div>
+
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   MENU SYSTEM
+========================= */
+
+function toggleMenu(){
+    document.getElementById("menuPanel").classList.toggle("hidden");
+}
+
+/* =========================
+   HOME
+========================= */
+
+function showHome(){
+    location.reload();
+}
+
+/* =========================
+   SCORE CALCULATION
+========================= */
+
+function calculateScore(){
+
+    let teacher = document.getElementById("teacher").value;
+    let student = document.getElementById("student").value;
+    let totalQ = parseInt(document.getElementById("totalQ").value);
+    let correct = parseInt(document.getElementById("correct").value);
+    let wrong = parseInt(document.getElementById("wrong").value);
+
+    if(!teacher || !student){
+        alert("Please fill all details");
+        return;
+    }
+
+    let penalty = Math.floor(wrong / 3);
+    let finalScore = correct - penalty;
+    if(finalScore < 0) finalScore = 0;
+
+    let percentage = ((finalScore / totalQ) * 100).toFixed(2);
+
+    let testData = {
+        teacher,
+        student,
+        totalQ,
+        correct,
+        wrong,
+        penalty,
+        finalScore,
+        percentage,
+        date:new Date().toLocaleString()
+    };
+
+    saveTest(testData);
+
+    document.getElementById("resultBox").innerHTML =
+    "<div class='card'>" +
+    "<b>Final Score:</b> " + finalScore + "<br>" +
+    "<b>Penalty:</b> -" + penalty + "<br>" +
+    "<b>Percentage:</b> " + percentage + "%" +
+    "</div>";
+
+}
+
+/* =========================
+   LOCAL DATABASE
+========================= */
+
+function saveTest(data){
+
+    let database = JSON.parse(localStorage.getItem("omrSS")) || [];
+    database.push(data);
+    localStorage.setItem("omrSS", JSON.stringify(database));
+
+}
+
+/* =========================
+   HISTORY SYSTEM
+========================= */
+
+function showHistory(){
+
+    let container = document.getElementById("mainContainer");
+    let database = JSON.parse(localStorage.getItem("omrSS")) || [];
+
+    let html = "<div class='card'><h3>Test History</h3>";
+
+    if(database.length === 0){
+        html += "No Records Found</div>";
+        container.innerHTML = html;
+        return;
+    }
+
+    database.forEach((item,index)=>{
+        html +=
+        "<div class='card'>" +
+        "<b>Student:</b> " + item.student + "<br>" +
+        "<b>Teacher:</b> " + item.teacher + "<br>" +
+        "<b>Score:</b> " + item.finalScore + "<br>" +
+        "<b>Percentage:</b> " + item.percentage + "%<br>" +
+        "<b>Date:</b> " + item.date +
+        "</div>";
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
+}
+
+/* =========================
+   RANKING SYSTEM
+========================= */
+
+function showRanking(){
+
+    let container = document.getElementById("mainContainer");
+    let database = JSON.parse(localStorage.getItem("omrSS")) || [];
+
+    database.sort((a,b)=> b.finalScore - a.finalScore);
+
+    let html = "<div class='card'><h3>Ranking</h3>";
+
+    database.forEach((item,index)=>{
+        html +=
+        "<div class='card'>" +
+        "<span class='rank-badge'>Rank " + (index+1) + "</span><br>" +
+        "<b>" + item.student + "</b><br>" +
+        "Score: " + item.finalScore +
+        "</div>";
+    });
+
+    html += "</div>";
+    container.innerHTML = html;
+}
+
+/* =========================
+   SETTINGS SYSTEM
+========================= */
+
+function showSettings(){
+
+    let apiKey = localStorage.getItem("apiKey") || "";
+    let modelId = localStorage.getItem("modelId") || "";
+
+    document.getElementById("mainContainer").innerHTML =
+    "<div class='card'>" +
+    "<h3>Settings</h3>" +
+    "<label>API Key</label>" +
+    "<input type='text' id='apiInput' value='"+apiKey+"'>" +
+    "<label>Model ID</label>" +
+    "<input type='text' id='modelInput' value='"+modelId+"'>" +
+    "<button onclick='saveSettings()'>Save Settings</button>" +
+    "</div>";
+}
+
+function saveSettings(){
+
+    let api = document.getElementById("apiInput").value;
+    let model = document.getElementById("modelInput").value;
+
+    localStorage.setItem("apiKey", api);
+    localStorage.setItem("modelId", model);
+
+    alert("Settings Saved");
+    location.reload();
+}
+
+/* =========================
+   EXPORT DATA
+========================= */
+
+function exportData(){
+
+    let database = localStorage.getItem("omrSS");
+    if(!database){
+        alert("No data to export");
+        return;
+    }
+
+    let blob = new Blob([database], {type:"application/json"});
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "omr_sheet_ss_backup.json";
+    a.click();
+
+}
+
+/* =========================
+   CLEAR DATA
+========================= */
+
+function clearAll(){
+
+    if(confirm("Are you sure?")){
+        localStorage.clear();
+        alert("All Data Cleared");
+        location.reload();
+    }
+
+}
+
+</script>
+
+</body>
+</html>
